@@ -2,6 +2,8 @@
 
 
 #include "FPSCharacter.h"
+#include "Engine/World.h"
+#include "DamageableActor.h"
 
 // Sets default values
 AFPSCharacter::AFPSCharacter()
@@ -32,10 +34,30 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 
 }
 
+void AFPSCharacter::fireWeapon() 
+{
+	FHitResult hit = InstantShot();
+	ADamageableActor* hitActor = Cast<ADamageableActor>(hit.Actor);
+	if (hitActor && hitActor->isAttackable) {
+		hitActor->takeAttack();
+	}
+}
+
 FHitResult AFPSCharacter::InstantShot()
 {
 	FVector rayLocation;
-	FVector rayRotation;
+	FRotator rayRotation;
+	FVector endTrace = FVector::ZeroVector;
 
-	return FHitResult();
+	APlayerController* const playerController = GetWorld()->GetFirstPlayerController();
+	if (playerController) {
+		playerController->GetPlayerViewPoint(rayLocation, rayRotation);
+		endTrace = rayLocation + (rayRotation.Vector() * weaponRange);
+	}
+
+	FCollisionQueryParams traceParams(SCENE_QUERY_STAT(instantShot), true, GetInstigator());
+	FHitResult hit(ForceInit);
+	GetWorld()->LineTraceSingleByChannel(hit, rayLocation, endTrace, ECC_Visibility, traceParams);
+
+	return hit;
 }
